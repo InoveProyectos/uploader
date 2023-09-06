@@ -1,71 +1,85 @@
-import React, { useCallback, useState, useEffect, useContext } from "react";
-import { useDropzone } from "react-dropzone";
-import { styled } from "@mui/material/styles";
+import React, { useState, useRef } from "react";
 import Chip from "@mui/material/Chip";
 import styles from "./UpLoader.module.css";
 
 function UpLoader() {
-  // const ListItem = styled("li")(({ theme }) => ({
-  //   margin: theme.spacing(1.5),
-  // }));
-
-  const [selectedFiles, setSelectedFiles] = useState([]);
-
-  const onDrop = useCallback(
-    (acceptedFiles) => {
-      const updatedFiles = acceptedFiles.map((file, index) => ({
-        key: `${selectedFiles.length + index}`,
-        label: file.name,
-      }));
-      setSelectedFiles([...selectedFiles, ...updatedFiles]);
-    },
-    [selectedFiles, setSelectedFiles]
-  );
-
-  const { getRootProps, getInputProps } = useDropzone({ onDrop });
+  const [blobUrl, setBlobUrl] = useState(null);
+  const [file, setFile] = useState(null);
+  const fileInputRef = useRef(null);
 
   const handleDelete = (chipToDelete) => () => {
-    setSelectedFiles((chips) =>
-      chips.filter((chip) => chip.key !== chipToDelete.key)
-    );
+    setFile((chips) => chips.filter((chip) => chip.key !== chipToDelete.key));
+    window.location.reload();
+  };
+
+  const handleFileChange = (event) => {
+    const selectedFile = event.target.files[0];
+    if (
+      selectedFile &&
+      (selectedFile.type === "application/pdf" ||
+        selectedFile.type === "image/png" ||
+        selectedFile.type === "image/jpeg")
+    ) {
+      setFile(selectedFile);
+
+      const blob = new Blob([selectedFile], { type: selectedFile.type });
+      console.log(selectedFile);
+      const url = window.URL.createObjectURL(blob);
+      setBlobUrl(url);
+    } else {
+      alert("Por favor, seleccione un archivo PDF, PNG o JPEG.");
+    }
+  };
+
+  const handleDownload = () => {
+    if (blobUrl) {
+      const a = document.createElement("a");
+      a.href = blobUrl;
+      a.download = file.name;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    }
   };
 
   return (
     <>
-      {/* <div {...getRootProps()} className="dropzoneStyles"> */}
-      <div {...getRootProps()}>
-        <input {...getInputProps()} />
-        {/* <p>
-          Arrastra y suelta archivos aquí o haz clic en "Upload" para
-          seleccionar archivos
-        </p>
-      <br /> */}
-        <button>Upload</button>
-      </div>
+      {file === null ? (
+        <>
+          <input
+            type="file"
+            accept=".pdf,image/*"
+            ref={fileInputRef}
+            style={{ display: "none" }}
+            onChange={handleFileChange}
+          />
+          <button onClick={() => fileInputRef.current.click()}>
+            Cargar Archivo
+          </button>
+        </>
+      ) : (
+        <>
+          <button onClick={handleDownload} disabled={!file}>
+            Descargar Archivo
+          </button>
+        </>
+      )}
       <div>
         <h2>Archivos seleccionados:</h2>
-        {selectedFiles.length == 0 ? (
+        {file == null ? (
           <div>
             <p>Cargue datos...</p>
           </div>
         ) : (
-          selectedFiles.map((data) => {
-            let icon;
-
-            return (
-              // <ListItem key={data.key}>
-              <div className={styles.chip}>
-                <Chip 
-                  key={data.key}
-                  style={{ background: "white" }}
-                  icon={icon}
-                  label={data.label}
-                  onDelete={handleDelete(data)}
-                />
-                </div>
-              // </ListItem>
-            );
-          })
+          <div className={styles.chip}>
+            <Chip
+              style={{ background: "white" }}
+              label={file.name}
+              onDelete={handleDelete(file[0])}
+            />
+          </div>
         )}
       </div>
     </>
