@@ -1,6 +1,8 @@
 import React, { useState, useRef } from "react";
 import Chip from "@mui/material/Chip";
 import styles from "./UpLoader.module.css";
+import { Button } from "@mui/material";
+import { Link } from "react-router-dom"
 
 function UpLoader() {
   const [blobUrl, setBlobUrl] = useState(null);
@@ -14,20 +16,26 @@ function UpLoader() {
 
   const handleFileChange = (event) => {
     const selectedFile = event.target.files[0];
-    if (
-      selectedFile &&
-      (selectedFile.type === "application/pdf" ||
-        selectedFile.type === "image/png" ||
-        selectedFile.type === "image/jpeg")
-    ) {
-      setFile(selectedFile);
+    if (selectedFile.size < 2600000) {
+      if (
+        selectedFile &&
+        (selectedFile.type === "application/pdf" ||
+          selectedFile.type === "image/png" ||
+          selectedFile.type === "image/jpeg")
+      ) {
+        setFile(selectedFile);
 
-      const blob = new Blob([selectedFile], { type: selectedFile.type });
-      console.log(selectedFile);
-      const url = window.URL.createObjectURL(blob);
-      setBlobUrl(url);
+        const blob = new Blob([selectedFile], { type: selectedFile.type });
+        console.log(selectedFile);
+        const url = window.URL.createObjectURL(blob);
+        setBlobUrl(url);
+      } else {
+        alert("Formato es inalido, only PDF, PNG o JPEG.");
+        window.location.reload();
+      }
     } else {
-      alert("Por favor, seleccione un archivo PDF, PNG o JPEG.");
+      alert("Supero los 2MB max de subida");
+      window.location.reload();
     }
   };
 
@@ -67,10 +75,10 @@ function UpLoader() {
         </>
       )}
       <div>
-        <h2>Archivos seleccionados:</h2>
+        <h2>Archivo seleccionado:</h2>
         {file == null ? (
           <div>
-            <p>Cargue datos...</p>
+            <p>Cargue un archivo...</p>
           </div>
         ) : (
           <div className={styles.chip}>
