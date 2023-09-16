@@ -20,7 +20,8 @@ document.getElementById('descargarEnlace').addEventListener('click', function(ev
     const fileName = fileNameMatch && fileNameMatch[1] ? fileNameMatch[1] : 'comprobante.png';
 
     // Crea un objeto File
-    const file = new File([blob], fileName, { type: 'image/png' });
+    console.log(blob)
+    const file = new File([blob], fileName, { type: blob.type });
 
     // Crea un enlace temporal para descargar el archivo
     const a = document.createElement('a');

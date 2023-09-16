@@ -78,10 +78,21 @@ class ComprobantePagoView(APIView):
             # Verificar que el archivo existe
             file_path = comprobante.archivo.path
             if os.path.exists(file_path):
+                filename = os.path.basename(comprobante.archivo.name)
+                if "pdf" in filename:
+                    content_type = "application/pdf"
+                elif "png" in filename:
+                    content_type = "image/png"
+                elif "jpg" in filename:
+                    content_type = "image/jpeg"
+                else:
+                    print("Error: Formato no soportado")
+                    return Response({'error': f'Formato no soportado, archivo {filename}'}, status=status.HTTP_400_BAD_REQUEST)
+
                 # Abre el archivo y configura la respuesta HTTP para la descarga
                 with open(file_path, 'rb') as file:
-                    response = HttpResponse(file.read(), content_type='application/pdf')  # Ajusta el tipo de contenido según tu archivo
-                    response['Content-Disposition'] = f'attachment; filename="{comprobante.archivo.name}"'
+                    response = HttpResponse(file.read(), content_type=content_type)  # Ajusta el tipo de contenido según tu archivo
+                    response['Content-Disposition'] = f'attachment; filename="{filename}"'
                     return response
             else:
                 print("Error: No se proporcionó ningún archivo")
