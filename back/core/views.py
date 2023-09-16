@@ -1,21 +1,33 @@
 import os
 import sys
+import io
+from PIL import Image
+
+from django.core.files import File
+from django.http import HttpResponse
+from django.core.exceptions import ObjectDoesNotExist
+from django.core.files.base import ContentFile
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.parsers import FileUploadParser
+from rest_framework.parsers import FileUploadParser, MultiPartParser
 
-from django.core.files import File
-from django.core.files.storage import default_storage
-from django.core.files.base import ContentFile
-from django.http import HttpResponse
-from django.core.exceptions import ObjectDoesNotExist
 
 from .models import Cuota, Comprobante  # Importa tu modelo de comprobante
 
+
+def convert_image_to_pdf_data(image):
+    buffer = io.BytesIO(image.read())
+    img = Image.open(buffer)
+    imgc = img.convert("RGB")
+    pdfdata = io.BytesIO()
+    imgc.save(pdfdata, format="PDF")
+    return pdfdata.getvalue()
+
+
 class ComprobantePagoView(APIView):
-    parser_classes = (FileUploadParser,)
+    parser_classes = (MultiPartParser,)
 
     def post(self, request, pk, format=None):
         try:
@@ -26,9 +38,20 @@ class ComprobantePagoView(APIView):
 
             archivo = request.FILES.get('file')  # Obtener el archivo de la solicitud
             if archivo:
+                # if "png" in archivo.name or "jpg" in archivo.name:
+                #     filedata = convert_image_to_pdf_data(archivo)
+                #     filename = archivo.name
+                #     filename = filename.replace("png", "pdf")
+                #     filename = filename.replace("jpg", "pdf")
+                # else:
+                #     filedata = archivo.read()
+                #     filename = archivo.name
+
+                filedata = archivo.read()
+                filename = archivo.name
+
                 # Guardar el archivo en el sistema
-                content_file = ContentFile(archivo.read(), name=archivo.name)
-                # Crear una instancia de Comprobante en la base de datos
+                content_file = ContentFile(filedata, name=filename)
                 comprobante = Comprobante(archivo=content_file)
                 comprobante.save()
 

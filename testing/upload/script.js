@@ -6,15 +6,15 @@ document.getElementById('comprobanteForm').addEventListener('submit', function(e
   
     if (archivo) {
       const formData = new FormData();
-      formData.append('archivo', archivo);
+      formData.append('file', archivo);
   
       fetch('http://127.0.0.1:8000/api/cuota/1/comprobante/', {
         method: 'POST',
         body: formData,
         headers: {
           'Accept': 'application/json',
-          'Content-Type': 'multipart/form-data', // Configurar para subir archivo
-          'Content-Disposition': `attachment; filename="${archivo.name}"`, // nombre del archivo
+          // 'Content-Type': 'multipart/form-data', // Configurar para subir archivo
+          // 'Content-Disposition': `attachment; filename="${archivo.name}"`, // nombre del archivo
         }
       })
       .then(response => {
