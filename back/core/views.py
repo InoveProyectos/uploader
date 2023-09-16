@@ -1,4 +1,5 @@
 import os
+import sys
 
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -17,30 +18,37 @@ class ComprobantePagoView(APIView):
     parser_classes = (FileUploadParser,)
 
     def post(self, request, pk, format=None):
-        cuota = Cuota.objects.filter(pk=pk).first()
-        if cuota is None:
-            return Response({'error': 'Cuota no encontrada'}, status=status.HTTP_404_NOT_FOUND)
-            
-        archivo = request.FILES.get('archivo')  # Obtener el archivo de la solicitud
-        if archivo:
-            # Guardar el archivo en el sistema de archivos utilizando default_storage
-            file_path = default_storage.save(archivo.name, ContentFile(archivo.read()))
+        try:
+            cuota = Cuota.objects.filter(pk=pk).first()
+            if cuota is None:
+                print("Error: Cuota no encontrada")
+                return Response({'error': 'Cuota no encontrada'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Crear una instancia de Comprobante en la base de datos
-            comprobante = Comprobante(archivo=file_path, descripcion=request.data.get('descripcion'))
-            comprobante.save()
+            archivo = request.FILES.get('file')  # Obtener el archivo de la solicitud
+            if archivo:
+                # Guardar el archivo en el sistema
+                content_file = ContentFile(archivo.read(), name=archivo.name)
+                # Crear una instancia de Comprobante en la base de datos
+                comprobante = Comprobante(archivo=content_file)
+                comprobante.save()
 
-            cuota.comprobante = comprobante
-            cuota.save()
-            
-            return Response(data={}, status=status.HTTP_201_CREATED)
-        else:
-            return Response({'error': 'No se proporcionó ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+                cuota.comprobante = comprobante
+                cuota.save()
+
+                return Response(data={}, status=status.HTTP_201_CREATED)
+            else:
+                print("Error: No se proporcionó ningún archivo")
+                return Response({'error': 'No se proporcionó ningún archivo'}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            exc_type, exc_obj, exc_tb = sys.exc_info()
+            print(f"Error: No se pudo subir el comprobante en linea {exc_tb.tb_lineno}: {e}")
+            return Response({'error': 'No se pudo subir el comprobante'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     
     def get(self, request, pk, format=None):
         try:
             cuota = Cuota.objects.get(pk=pk)
             if cuota.comprobante is None:
+                print("Error: Cuota no encontrada")
                 return Response({'error': 'Comprobante no encontrado'}, status=status.HTTP_404_NOT_FOUND)
             
             comprobante = cuota.comprobante
@@ -50,17 +58,20 @@ class ComprobantePagoView(APIView):
                 # Abre el archivo y configura la respuesta HTTP para la descarga
                 with open(file_path, 'rb') as file:
                     response = HttpResponse(file.read(), content_type='application/pdf')  # Ajusta el tipo de contenido según tu archivo
-                    response['Content-Disposition'] = f'attachment; filename="{os.path.basename(file_path)}"'
+                    response['Content-Disposition'] = f'attachment; filename="{comprobante.archivo.name}"'
                     return response
             else:
+                print("Error: No se proporcionó ningún archivo")
                 return Response({'error': 'El archivo no existe'}, status=status.HTTP_404_NOT_FOUND)
         except ObjectDoesNotExist:
+            print("Error: Cuota no encontrada")
             return Response({'error': 'Cuota no encontrada'}, status=status.HTTP_404_NOT_FOUND)
     
     def put(self, request, pk, format=None):
         try:
             cuota = Cuota.objects.get(pk=pk)
             if cuota.comprobante is None:
+                print("Error: Comprobante no encontrado")
                 return Response({'error': 'Comprobante no encontrado'}, status=status.HTTP_404_NOT_FOUND)
             
             comprobante = cuota.comprobante
@@ -72,14 +83,17 @@ class ComprobantePagoView(APIView):
 
                 return Response({'mensaje': 'Archivo actualizado correctamente'})
             else:
+                print("Error: No se proporcionó un archivo válido para la actualización")
                 return Response({'error': 'No se proporcionó un archivo válido para la actualización'}, status=status.HTTP_400_BAD_REQUEST)
         except ObjectDoesNotExist:
+            print("Error: Cuota no encontrada")
             return Response({'error': 'Cuota no encontrada'}, status=status.HTTP_404_NOT_FOUND)
     
     def delete(self, request, pk, format=None):
         try:
             cuota = Cuota.objects.get(pk=pk)           
             if cuota.comprobante is None:
+                print("Error: Comprobante no encontrado")
                 return Response({'error': 'Comprobante no encontrado'}, status=status.HTTP_404_NOT_FOUND)
             
             comprobante = cuota.comprobante
@@ -94,6 +108,8 @@ class ComprobantePagoView(APIView):
                 
                 return Response({'mensaje': 'El comprobante y el archivo asociado fueron eliminados correctamente'})
             else:
+                print("Error: El archivo no existe")
                 return Response({'error': 'El archivo no existe'}, status=status.HTTP_404_NOT_FOUND)
         except ObjectDoesNotExist:
+            print("Error: Cuota no encontrada")
             return Response({'error': 'Cuota no encontrada'}, status=status.HTTP_404_NOT_FOUND)
