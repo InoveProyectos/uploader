@@ -85,6 +85,8 @@ class ComprobantePagoView(APIView):
                     content_type = "image/png"
                 elif "jpg" in filename:
                     content_type = "image/jpeg"
+                elif "jpeg" in filename:
+                    content_type = "image/jpeg"
                 else:
                     print("Error: Formato no soportado")
                     return Response({'error': f'Formato no soportado, archivo {filename}'}, status=status.HTTP_400_BAD_REQUEST)
